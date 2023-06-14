@@ -6,7 +6,7 @@
 <body>
 <h2>Face Detection Result</h2>
 <p th:if="${hasFace}">The image contains a face.</p>
-<p th:unless="${hasFace}">No face found in the image.</p>
+<p th:text="${response}">No face found in the image.</p>
 <a href="/">Back</a>
 </body>
 </html>

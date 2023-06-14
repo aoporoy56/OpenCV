@@ -5,9 +5,14 @@
 </head>
 <body>
 <h2>Face Detection</h2>
-<form action="/detect-face" method="post" enctype="multipart/form-data">
+<form action="/detect-faces" method="post" enctype="multipart/form-data">
     <input type="file" name="image" accept="image/*" />
     <button type="submit">Detect Face</button>
+</form>
+<form action="/match-faces" method="post" enctype="multipart/form-data">
+    <input type="file" name="image" accept="image/*" />
+    <input type="file" name="image2" accept="image/*" />
+    <button type="submit">Match Face</button>
 </form>
 </body>
 </html>

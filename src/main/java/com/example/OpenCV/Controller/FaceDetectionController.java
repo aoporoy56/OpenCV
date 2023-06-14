@@ -1,25 +1,38 @@
 package com.example.OpenCV.Controller;
 
-import org.opencv.core.*;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
-import org.opencv.objdetect.CascadeClassifier;
+
+import java.util.Base64;
+
+import com.example.OpenCV.Entity.Image;
+import com.example.OpenCV.Entity.Images;
+import com.example.OpenCV.Entity.Search;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.BodyInserter;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Controller
 public class FaceDetectionController {
 
+    private WebClient webClient;
 
+    @Autowired
+    public void MyController(WebClient webClient) {
+        this.webClient = webClient;
+    }
 
-
-
-    private final String faceCascadePath = "haarcascade_frontalface_alt.xml";
+    public FaceDetectionController(WebClient webClient) {
+        this.webClient = webClient;
+    }
 
     @GetMapping("/")
     public String index() {
@@ -27,29 +40,62 @@ public class FaceDetectionController {
     }
 
     @PostMapping("/detect-faces")
-    public String detectFaces(@RequestParam("imageFile") MultipartFile imageFile, Model model) {
-        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-        try {
-            // Load the face cascade classifier
-            CascadeClassifier faceCascade = new CascadeClassifier(faceCascadePath);
+    public Mono<String> detectFaces(@RequestParam("image") MultipartFile file, Model model) throws Exception  {
+        byte[] image = file.getBytes();
+        String base64String = Base64.getEncoder().encodeToString(image);
+        Search search = new Search("stringstringstringstringstringstring",0.7,"FAST");
+        Image image1 = new Image(base64String,search);
 
-            // Load the image using OpenCV
-            Mat image = Imgcodecs.imdecode(new MatOfByte(imageFile.getBytes()), Imgcodecs.IMREAD_COLOR);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("accept", "application/json");
+        headers.set("X-API-Key", "ecVlq2zNWIwMzU5OWQtMjk1Ni00NjZjLWFkNGYtZTI2NjE3NTg0YWFi");
+        String apiUrl = "https://us.opencv.fr/detect";
 
-            // Convert the image to grayscale
-            Mat grayImage = new Mat();
-            Imgproc.cvtColor(image, grayImage, Imgproc.COLOR_BGR2GRAY);
+        return webClient.post()
+                .uri(apiUrl)
+                .headers((httpHeaders -> httpHeaders.addAll((headers))))
+                .body(
+                        BodyInserters.fromValue(image1)
+                )
+                .retrieve()
+                .bodyToMono(String.class)
+                .doOnSuccess(response -> {
+                    // Process the API response
+                    System.out.println(response);
+                    model.addAttribute("response", response);
+                })
+                .then(Mono.just("result"));
+    }
 
-            // Detect faces in the image
-            MatOfRect faces = new MatOfRect();
-            faceCascade.detectMultiScale(grayImage, faces);
+    @PostMapping("/match-faces")
+    public Mono<String> detectFaces(@RequestParam("image") MultipartFile file, @RequestParam("image2") MultipartFile file2, Model model) throws Exception  {
+        byte[] image = file.getBytes();
+        String[] base64String = {Base64.getEncoder().encodeToString(image)};
 
-            // Set the detected faces in the model
-            model.addAttribute("faces", faces.toArray());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        byte[] image2 = file2.getBytes();
+        String[] base64String2 = {Base64.getEncoder().encodeToString(image2)};
+        Images image1 = new Images(base64String,base64String2,"ACCURATE");
 
-        return "result";
+
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("accept", "application/json");
+        headers.set("X-API-Key", "ecVlq2zNWIwMzU5OWQtMjk1Ni00NjZjLWFkNGYtZTI2NjE3NTg0YWFi");
+        String apiUrl = "https://us.opencv.fr/compare";
+
+        return webClient.post()
+                .uri(apiUrl)
+                .headers((httpHeaders -> httpHeaders.addAll((headers))))
+                .body(
+                        BodyInserters.fromValue(image1)
+                )
+                .retrieve()
+                .bodyToMono(String.class)
+                .doOnSuccess(response -> {
+                    // Process the API response
+                    System.out.println(response);
+                    model.addAttribute("response", response);
+                })
+                .then(Mono.just("result"));
     }
 }
