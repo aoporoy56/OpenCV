@@ -14,5 +14,10 @@
     <input type="file" name="image2" accept="image/*" />
     <button type="submit">Match Face</button>
 </form>
+<h2>Camera Capture</h2>
+<form method="post" enctype="multipart/form-data" th:action="@{/capture}">
+    <button type="submit">Capture Image</button>
+</form>
+<p th:text="${message}"></p>
 </body>
 </html>

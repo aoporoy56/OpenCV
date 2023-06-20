@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Webcam Popup</title>
+  <style>
+    /* Add some basic styling to center the popup */
+    #webcamPopup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 400px;
+      height: 300px;
+      background-color: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+<button onclick="openWebcamPopup()">Open Webcam</button>
+<button onclick="matchFace()">Match</button>
+
+<img id="picture" src="" alt="Captured Image">
+<div id="webcamPopup" style="display: none;">
+  <video id="webcamVideo" width="400" height="300"></video>
+  <button onclick="takePicture()">Take Picture</button>
+  <button onclick="closeWebcamPopup()">Close</button>
+</div>
+
+<script>
+  let webcamStream;
+  let webcamVideo;
+  let webcamPopup;
+  let image;
+  let imageBase64;
+
+  function openWebcamPopup() {
+    // Get the webcam popup element
+    webcamPopup = document.getElementById('webcamPopup');
+    image = document.getElementById("picture");
+
+    // Get the webcam video element
+    webcamVideo = document.getElementById('webcamVideo');
+
+    // Check if the browser supports getUserMedia
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      // Open the webcam popup
+      webcamPopup.style.display = 'block';
+
+      // Request access to the webcam
+      navigator.mediaDevices.getUserMedia({ video: true })
+              .then(function(stream) {
+                // Save the webcam stream
+                webcamStream = stream;
+
+                // Attach the stream to the video element
+                webcamVideo.srcObject = stream;
+                webcamVideo.play();
+              })
+              .catch(function(error) {
+                console.error('Error accessing webcam:', error);
+              });
+    } else {
+      console.error('getUserMedia is not supported');
+    }
+  }
+
+  function takePicture() {
+    // Create a canvas element
+    const canvas = document.createElement('canvas');
+    canvas.width = webcamVideo.videoWidth;
+    canvas.height = webcamVideo.videoHeight;
+
+    // Draw the current video frame onto the canvas
+    const context = canvas.getContext('2d');
+    context.drawImage(webcamVideo, 0, 0, canvas.width, canvas.height);
+
+    // Get the base64-encoded image data
+    const imageData = canvas.toDataURL('image/png');
+    imageBase64 = imageData.replace("data:", "")
+            .replace(/^.+,/, "");
+
+    image.src = imageData;
+    // Do something with the image data, such as sending it to the server
+    console.log(imageData);
+    closeWebcamPopup();
+  }
+
+  function closeWebcamPopup() {
+    // Stop the webcam stream
+    if (webcamStream) {
+      webcamStream.getTracks().forEach(function(track) {
+        track.stop();
+      });
+    }
+
+    // Hide the webcam popup
+    webcamPopup.style.display = 'none';
+  }
+
+
+  function matchFace(){
+    let requestData = {
+      image : imageBase64
+    }
+
+    fetch("/match", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: imageBase64
+    })
+            .then(response => response) // Parse the response as JSON
+            .then(data => {
+              console.log(data);
+            })
+            .catch(error => {
+              console.log(error)
+            });
+  }
+
+</script>
+</body>
+</html>
